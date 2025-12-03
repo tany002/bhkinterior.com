@@ -171,6 +171,11 @@ function App() {
   const [signupForm, setSignupForm] = useState({ email: '', phone: '' });
   const [newMemberPhone, setNewMemberPhone] = useState('');
 
+  // Domain Branding Effect
+  useEffect(() => {
+    document.title = "BHKInterior.com | AI Home Design Studio";
+  }, []);
+
   // --- Handlers ---
   const handleStartFlow = (registrationData?: { name: string; email: string; phone: string }) => {
     if (registrationData) {
