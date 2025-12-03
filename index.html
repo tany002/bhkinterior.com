@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BHKInterior.com - Premium Interior Design</title>
+    <!-- Tailwind CDN is kept for simplicity in this setup -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              'brand-cream': '#F4EBE2',  // Primary Background
+              'brand-rose': '#DCC5BA',   // Secondary / Accents
+              'brand-shadow': '#BFA298', // Tertiary / Borders
+              'brand-taupe': '#6E5C54',  // Primary Text / Strong Buttons
+              
+              // Mapping old colors to new palette for compatibility if missed
+              'stone-50': '#F4EBE2',
+              'stone-100': '#EDE4DB',
+              'stone-200': '#DCC5BA',
+              'stone-800': '#5A4B44',
+              'stone-900': '#6E5C54',
+              'indigo-600': '#6E5C54', // Replace branded action color
+              'indigo-50': '#FAF7F5',
+            },
+            fontFamily: {
+              serif: ['Playfair Display', 'Georgia', 'Cambria', 'serif'],
+              sans: ['Inter', 'system-ui', 'sans-serif'],
+              display: ['Playfair Display', 'serif'],
+            },
+            backgroundImage: {
+              'luxury-gradient': 'linear-gradient(to bottom, #F4EBE2, #FAF7F5)',
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+      
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #F4EBE2;
+        color: #6E5C54;
+      }
+      
+      .font-serif {
+        font-family: 'Playfair Display', serif;
+      }
+
+      /* Custom Scrollbar for the new palette */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #F4EBE2; 
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #DCC5BA; 
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #BFA298; 
+      }
+      
+      .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+      }
+      .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
+    "three/": "https://aistudiocdn.com/three@^0.181.2/",
+    "three": "https://aistudiocdn.com/three@^0.181.2",
+    "vite": "https://aistudiocdn.com/vite@^7.2.4",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
