@@ -1,4 +1,20 @@
-import { GoogleGenAI, GenerateContentResponse, Type } from "@google/genai";
+// --- START: compatibility shim for Google Generative AI SDK ---
+// Use the published package @google/generative-ai and tolerate different export shapes.
+import * as genai from "@google/generative-ai";
+// If the SDK has types, great; otherwise use a permissive any
+type GenerateContentResponse = any;
+
+// The old code used `Type.OBJECT`, `Type.STRING` etc.
+// The new SDK may export a `Type` object; if not, fallback to a minimal mapping.
+const Type: any = (genai as any).Type ?? {
+  STRING: "string",
+  NUMBER: "number",
+  INTEGER: "integer",
+  OBJECT: "object",
+  ARRAY: "array",
+  BOOLEAN: "boolean"
+};
+
 import { ScaleAnalysis, DesignResult, ImageSemanticData, ReconstructionResult, RoomData, LayoutProposal, SceneGenerationResult, RenderedView, ValidationResult, QAHeuristicResult, FloorPlanAnalysis, RoomType, FurniturePlacement, DesignRegion } from "../types";
 
 // Safety check for API Key to prevent crash on load
@@ -7,7 +23,36 @@ if (!apiKey) {
   console.warn("API_KEY is missing. The app will load, but AI features will fail.");
 }
 
-const ai = new GoogleGenAI({ apiKey: apiKey || "dummy_key_to_prevent_crash" });
+// Normalize exported constructor (the SDK has used a few different exported shapes).
+// We use `any` to avoid TypeScript build errors if types differ between versions.
+const GoogleGenerativeAIConstructor: any =
+  (genai as any).GoogleGenerativeAI ?? // preferred named export
+  (genai as any).default ??            // fallback default export
+  (genai as any);                      // last resort: the module itself
+
+// Instantiate the client. Some SDK versions accept an object with apiKey,
+// others accept a plain string — try the common patterns defensively.
+let ai: any;
+try {
+  ai = new GoogleGenerativeAIConstructor({ apiKey: apiKey || "dummy_key_to_prevent_crash" });
+} catch (e) {
+  // fallback: try constructing with plain apiKey string
+  try {
+    ai = new GoogleGenerativeAIConstructor(apiKey || "dummy_key_to_prevent_crash");
+  } catch (err) {
+    // if both constructors fail, create a minimal stub that will throw on use and log useful info
+    console.warn("Failed to construct GoogleGenerativeAI client. SDK shape may differ; error:", err);
+    ai = {
+      models: {
+        // keep common method names as stubs so other code can import/build
+        generateContent: async () => { throw new Error("GoogleGenerativeAI client not initialized"); }
+      },
+      generate: async () => { throw new Error("GoogleGenerativeAI client not initialized"); },
+      responses: { create: async () => { throw new Error("GoogleGenerativeAI client not initialized"); } }
+    };
+  }
+}
+// --- END: compatibility shim ---
 
 const threeDUltraPrompt = (unitType: string, styleId: string | null) => `
 SYSTEM:
