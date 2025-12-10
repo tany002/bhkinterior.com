@@ -1,3 +1,5 @@
+
+
 export type RoomType = 'Living Room' | 'Kitchen' | 'Bedroom' | 'Bathroom' | 'Dining Room';
 
 export enum AppStep {
@@ -294,7 +296,7 @@ export const DESIGN_STYLES = [
   { id: 'transitional', name: 'Transitional', description: 'The perfect balance of traditional elegance and modern lines. Timeless and sophisticated.', image: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=500&q=80' },
   { id: 'mid-century', name: 'Mid-Century Modern', description: 'Retro 50s/60s vibe. Tapered legs, geometric patterns, olive & mustard tones.', image: 'https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?w=500&q=80' },
   { id: 'luxury-modern', name: 'Luxury Modern', description: 'High-gloss finishes, velvet textures, gold accents, and dramatic lighting.', image: 'https://images.unsplash.com/photo-1631679706909-1844bbd07221?w=500&q=80' },
-  { id: 'scandinavian', name: 'Scandinavian', description: 'Hygge warmth, light woods, functional simplicity, and cozy textiles.', image: 'https://images.unsplash.com/photo-1595558171834-a71abd9e68d1?w=500&q=80' },
+  { id: 'scandinavian', name: 'Scandinavian', description: 'Hygge warmth, light woods, functional simplicity, and cozy textiles.', image: 'https://images.unsplash.com/photo-1595515106969-1ce29566ff1c?w=500&q=80' },
   { id: 'japandi', name: 'Japandi', description: 'Fusion of Japanese rustic minimalism and Scandinavian functionality.', image: 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=500&q=80' },
   { id: 'minimalist', name: 'Minimalist', description: 'Ultra-clean lines, monochromatic palettes, and clutter-free spaces.', image: 'https://images.unsplash.com/photo-1494438639946-1ebd1d20bf85?w=500&q=80' },
   { id: 'boho', name: 'Boho', description: 'Eclectic layering, organic textures, rattan, and global patterns.', image: 'https://images.unsplash.com/photo-1522444195799-478538b28823?w=500&q=80' },

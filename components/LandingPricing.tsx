@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from './Button';
 import { Check, AlertTriangle, Crown } from 'lucide-react';
@@ -34,7 +35,7 @@ export const LandingPricing: React.FC<LandingPricingProps> = ({ billingCycle, se
                             className={`px-6 md:px-8 py-3 rounded-full text-sm font-bold transition-all relative ${billingCycle === cycle.id ? 'bg-brand-taupe text-brand-cream shadow-md' : 'text-brand-taupe/60 hover:text-brand-taupe'}`}
                         >
                             {cycle.label}
-                            {cycle.tag && billingCycle !== cycle.id && <span className="absolute -top-3 -right-2 text-[10px] bg-brand-rose text-brand-taupe px-2 py-0.5 rounded-full font-bold">{cycle.tag}</span>}
+                            {cycle.tag && <span className="absolute -top-3 -right-2 text-[10px] bg-brand-rose text-brand-taupe px-2 py-0.5 rounded-full font-bold">{cycle.tag}</span>}
                         </button>
                     ))}
                 </div>

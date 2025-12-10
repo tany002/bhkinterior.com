@@ -1,3 +1,4 @@
+
 # BHKInterior.com - AI Interior Designer
 
 An advanced AI-powered interior design application that transforms floor plans and photos into stunning 3D visualizations and renders.
@@ -17,6 +18,8 @@ An advanced AI-powered interior design application that transforms floor plans a
 -   **AI Model**: Google Gemini 2.5 Flash & Pro (Multimodal)
 -   **3D Engine**: Three.js
 -   **Build Tool**: Vite
+-   **Email**: Resend
+-   **Payments**: Cashfree
 
 ## Getting Started
 
@@ -29,21 +32,33 @@ An advanced AI-powered interior design application that transforms floor plans a
     npm install
     ```
 3.  Set up environment variables:
-    Create a `.env` file in the root directory and add your Google Gemini API key:
+    Create a `.env` file in the root directory (see `.env` file in repo):
     ```env
-    API_KEY=your_google_api_key_here
+    # AI
+    API_KEY=your_google_api_key
+
+    # Email (Resend.com)
+    RESEND_API_KEY=re_123456...
+
+    # Payments (Cashfree)
+    CASHFREE_APP_ID=...
+    CASHFREE_SECRET_KEY=...
+    CASHFREE_ENV=sandbox
     ```
 4.  Run the development server:
+    **Important:** To run the backend API functions (`/api/*`) locally, use Vercel CLI:
     ```bash
-    npm run dev
+    npm i -g vercel
+    vercel dev
     ```
+    If you use `npm run dev`, the email and payment features will **not** work because Vite does not host the serverless functions.
 
 ## Deployment on Vercel
 
 1.  Push this code to your GitHub repository.
 2.  Import the project into Vercel.
 3.  Vercel will detect `Vite` as the framework.
-4.  **Crucial**: Add `API_KEY` to the **Environment Variables** in Vercel settings.
+4.  **Crucial**: Add all variables from your `.env` file to the **Environment Variables** section in Vercel settings.
 5.  Deploy!
 
 ## License

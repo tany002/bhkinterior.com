@@ -1,7 +1,9 @@
+
 // App.tsx
 import React, { useState, useRef, useEffect } from 'react';
 import { AppState, AppStep, RoomData, RoomType, DESIGN_STYLES, ROOM_QUESTIONS, LayoutProposal, DesignRegion, OnboardingData, SubscriptionTier, BillingCycle } from './types';
 import { analyzeFloorPlan, generateRoomDesign, analyzeImageCoverage, analyzeHouseVideo, analyzeRoomScale, analyzeRoomSemantics, compute3DReconstruction, generateLayoutProposals, validateLayouts, generate3DScene, generateRenderedViews, validateAndRefineRenders } from './services/geminiService';
+import { createOrder, doPayment } from './services/cashfreeService';
 import { FileUpload } from './components/FileUpload';
 import { Button } from './components/Button';
 import { ImageViewer } from './components/ImageViewer';
@@ -20,6 +22,7 @@ import { LandingGallery } from './components/LandingGallery';
 import { LandingFooter } from './components/LandingFooter';
 import { Landing3DTeaser } from './components/Landing3DTeaser';
 import { OnboardingBackground } from './components/OnboardingBackground';
+import { AuthVerificationModal } from './components/AuthVerificationModal';
 
 import { 
   ArrowRight,
@@ -165,15 +168,48 @@ function App() {
   const [activeStyleTab, setActiveStyleTab] = useState<string | null>(null);
   const [viewing3D, setViewing3D] = useState<string | null>(null); 
   
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
+  // Payment State
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>('yearly');
   const [selectedPlanTier, setSelectedPlanTier] = useState<SubscriptionTier | null>(null);
-  const [showSignupModal, setShowSignupModal] = useState(false);
-  const [signupForm, setSignupForm] = useState({ email: '', phone: '' });
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [newMemberPhone, setNewMemberPhone] = useState('');
 
-  // Domain Branding Effect
+  // Pricing Logic (Centralized)
+  // Explicitly typed to prevent TS7053 error
+  const PRICING: Record<BillingCycle, Record<SubscriptionTier, number>> = {
+      monthly: { free: 0, pro: 49, premium: 179, ultra: 199 },
+      half_yearly: { free: 0, pro: 42.99, premium: 159, ultra: 182.99 },
+      yearly: { free: 0, pro: 39, premium: 149, ultra: 169 }
+  };
+  
+  // Calculate multiplier for total contract value
+  const getBillingMultiplier = (cycle: BillingCycle) => {
+      switch (cycle) {
+          case 'monthly': return 1;
+          case 'half_yearly': return 6;
+          case 'yearly': return 12;
+          default: return 1;
+      }
+  };
+
+  // Domain Branding & Payment Callback Handling
   useEffect(() => {
     document.title = "BHKInterior.com | AI Home Design Studio";
+    
+    // Check for Cashfree Return
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get('status');
+    
+    if (paymentStatus === 'success') {
+       // Unlock app features on successful return
+       setState(prev => ({ 
+           ...prev, 
+           step: AppStep.ONBOARDING,
+           userProfile: { ...prev.userProfile, isSubscribed: true }
+       }));
+       // Clean URL
+       window.history.replaceState({}, document.title, window.location.pathname);
+    }
   }, []);
 
   // --- Handlers ---
@@ -200,32 +236,78 @@ function App() {
 
   const handlePlanSelect = (tier: SubscriptionTier) => {
       setSelectedPlanTier(tier);
-      setShowSignupModal(true);
+      setState(prev => ({ ...prev, step: AppStep.PAYWALL }));
   };
 
-  const handleSubscribe = () => {
-    if (!selectedPlanTier) return;
+  const handleInitiateCheckout = () => {
+      if (selectedPlanTier) {
+          setShowAuthModal(true);
+      }
+  };
+
+  const handlePaymentVerificationSuccess = async (data: { email: string; phone: string; countryCode: string }) => {
+    if (!selectedPlanTier || selectedPlanTier === 'free') return;
+    
+    // 1. Determine local currency code based on country
+    let targetCurrency = 'USD';
+    
+    switch (data.countryCode) {
+        case '+91': targetCurrency = 'INR'; break;
+        case '+44': targetCurrency = 'GBP'; break;
+        case '+49': 
+        case '+33': 
+            targetCurrency = 'EUR'; break;
+        case '+971': targetCurrency = 'AED'; break;
+        case '+61': targetCurrency = 'AUD'; break;
+        case '+1-CA': targetCurrency = 'CAD'; break;
+        default: targetCurrency = 'USD'; break;
+    }
+    
+    // 2. Calculate Base USD Amount
+    const monthlyRateUSD = PRICING[billingCycle][selectedPlanTier];
+    const multiplier = getBillingMultiplier(billingCycle);
+    const totalBaseUSD = monthlyRateUSD * multiplier;
+    
+    // 3. Setup User Profile State (Optimistic)
     let maxDesigns = 1;
     if (selectedPlanTier === 'pro') maxDesigns = 1000;
     if (selectedPlanTier === 'premium') maxDesigns = 5000;
     if (selectedPlanTier === 'ultra') maxDesigns = 10000;
 
+    const fullPhone = `${data.countryCode}${data.phone}`.replace(/[^0-9+]/g, '');
+
     setState(prev => ({ 
       ...prev, 
       userProfile: { 
           ...prev.userProfile, 
-          isSubscribed: true,
+          // Subscribed is set to true only after success, but data is saved now
           tier: selectedPlanTier,
           billingCycle: billingCycle,
-          email: signupForm.email || prev.userProfile.email,
-          phone: signupForm.phone || prev.userProfile.phone,
+          email: data.email,
+          phone: fullPhone,
           designCount: 0,
           maxDesigns: maxDesigns
-      },
-      step: AppStep.ONBOARDING
+      }
     }));
-    setShowSignupModal(false);
-    setOnboardingStep(1);
+
+    // 4. Trigger Backend Order
+    // NOTE: We send USD amount. Backend handles exchange rate conversion.
+    try {
+        const order = await createOrder(totalBaseUSD, { email: data.email, phone: fullPhone }, targetCurrency);
+        
+        if (order.success && order.paymentSessionId) {
+            // 5. Redirect to Payment Gateway
+            await doPayment(order.paymentSessionId);
+        } else {
+            console.error("Order error", order);
+            alert("Order creation failed. Please try again.");
+            setShowAuthModal(false);
+        }
+    } catch (e) {
+        console.error("Payment flow error", e);
+        alert("Could not initiate payment. Please try again.");
+        setShowAuthModal(false);
+    }
   };
   
   const handleAddFamilyMember = () => {
@@ -625,6 +707,21 @@ function App() {
       }
   }
 
+  // Calculate the total amount for the modal
+  const getMultiplier = (cycle: BillingCycle) => {
+      switch (cycle) {
+          case 'monthly': return 1;
+          case 'half_yearly': return 6;
+          case 'yearly': return 12;
+          default: return 1;
+      }
+  };
+  
+  // Safe check for free tier to prevent indexing error
+  const currentTotalAmountUSD = (selectedPlanTier && selectedPlanTier !== 'free')
+      ? PRICING[billingCycle][selectedPlanTier] * getMultiplier(billingCycle)
+      : 0;
+
   // --- Main Render ---
   return (
     <div className="min-h-screen bg-brand-cream font-sans text-brand-taupe selection:bg-brand-rose/30">
@@ -693,35 +790,6 @@ function App() {
             />
             
             <LandingFooter />
-
-            {/* Signup Modal (Simple) */}
-            {showSignupModal && (
-                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl p-8 max-w-md w-full animate-in zoom-in-95">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-2xl font-serif font-bold">Complete Registration</h3>
-                            <button onClick={() => setShowSignupModal(false)}><X size={24}/></button>
-                        </div>
-                        <div className="space-y-4">
-                            <input 
-                                type="email" placeholder="Email Address" 
-                                className="w-full px-4 py-3 border rounded-lg"
-                                value={signupForm.email} onChange={e => setSignupForm({...signupForm, email: e.target.value})}
-                            />
-                            <input 
-                                type="tel" placeholder="Phone Number" 
-                                className="w-full px-4 py-3 border rounded-lg"
-                                value={signupForm.phone} onChange={e => setSignupForm({...signupForm, phone: e.target.value})}
-                            />
-                            <div className="pt-4">
-                                <Button fullWidth onClick={handleSubscribe} className="py-3 text-lg">
-                                    Confirm {selectedPlanTier?.toUpperCase()} Plan
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
       )}
 
@@ -743,56 +811,103 @@ function App() {
       {/* --- Paywall Step --- */}
       {state.step === AppStep.PAYWALL && (
          <div className="min-h-screen bg-brand-cream flex flex-col items-center justify-center p-4 md:p-6 overflow-y-auto">
-             <div className="max-w-4xl w-full bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row my-auto">
+             <div className="max-w-5xl w-full bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row my-auto animate-in zoom-in-95 duration-300">
                  {/* Left Panel (Top on mobile) */}
-                 <div className="md:w-1/2 bg-stone-900 p-8 md:p-12 text-white flex flex-col justify-between relative overflow-hidden shrink-0">
+                 <div className="md:w-2/5 bg-stone-900 p-8 md:p-12 text-white flex flex-col justify-between relative overflow-hidden shrink-0">
                      <div className="relative z-10">
                         <BHKLogo className="w-12 h-12 md:w-16 md:h-16 mb-4 md:mb-6 brightness-0 invert" />
                         <h2 className="text-3xl md:text-4xl font-serif font-bold mb-4">Unlock Your Dream Home</h2>
-                        <ul className="space-y-3 md:space-y-4 text-base md:text-lg text-white/80">
+                        <ul className="space-y-4 text-base md:text-lg text-white/80">
                             <li className="flex gap-3"><Check className="text-brand-rose shrink-0" /> Unlimited AI Redesigns</li>
                             <li className="flex gap-3"><Check className="text-brand-rose shrink-0" /> 8K Photorealistic Renders</li>
                             <li className="flex gap-3"><Check className="text-brand-rose shrink-0" /> 3D Walkthroughs</li>
+                            <li className="flex gap-3"><Check className="text-brand-rose shrink-0" /> Priority Support</li>
                         </ul>
                      </div>
                      <div className="absolute inset-0 opacity-20 bg-[url('https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=800')] bg-cover" />
                  </div>
                  
                  {/* Right Panel (Bottom on mobile) */}
-                 <div className="md:w-1/2 p-8 md:p-12 flex flex-col justify-center bg-white">
-                     <h3 className="text-2xl font-bold mb-6 text-center text-gray-900">Choose Your Plan</h3>
-                     <div className="space-y-4 mb-8">
+                 <div className="md:w-3/5 p-6 md:p-10 flex flex-col bg-white overflow-y-auto max-h-[80vh] md:max-h-none">
+                     <div className="text-center mb-6">
+                         <h3 className="text-2xl font-bold text-gray-900 mb-4">Choose Your Plan</h3>
+                         
+                         {/* Billing Toggle */}
+                         <div className="inline-flex bg-gray-100 p-1 rounded-full shadow-inner">
+                            {[{id:'monthly', label:'Monthly'}, {id:'half_yearly', label:'6 Mo', tag:'-15%'}, {id:'yearly', label:'Yearly', tag:'-30%'}].map(cycle => (
+                                <button 
+                                    key={cycle.id}
+                                    onClick={() => setBillingCycle(cycle.id as any)}
+                                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all relative ${billingCycle === cycle.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+                                >
+                                    {cycle.label}
+                                    {cycle.tag && <span className={`absolute -top-2 -right-2 text-[8px] px-1.5 py-0.5 rounded-full font-bold text-white ${billingCycle === cycle.id ? 'bg-brand-taupe' : 'bg-brand-rose'}`}>{cycle.tag}</span>}
+                                </button>
+                            ))}
+                        </div>
+                     </div>
+
+                     <div className="space-y-3 mb-6 flex-1 overflow-y-auto pr-2">
+                         {/* Pro Card */}
                          <div 
-                            onClick={() => setSelectedPlanTier('premium')}
-                            className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${selectedPlanTier === 'premium' ? 'border-brand-taupe bg-brand-cream' : 'border-gray-200 hover:border-brand-taupe'}`}
+                            onClick={() => setSelectedPlanTier('pro')}
+                            className={`p-4 border-2 rounded-xl cursor-pointer transition-all relative ${selectedPlanTier === 'pro' ? 'border-brand-taupe bg-brand-cream/30 ring-1 ring-brand-taupe' : 'border-gray-100 hover:border-brand-taupe/50'}`}
                          >
                              <div className="flex justify-between items-center mb-1">
-                                 <span className="font-bold text-gray-900">Premium</span>
-                                 <span className="font-bold text-gray-900">$39/mo</span>
+                                 <span className="font-bold text-gray-900">Pro</span>
+                                 <span className="font-bold text-gray-900">${PRICING[billingCycle].pro}<span className="text-xs font-normal text-gray-500">/mo</span></span>
                              </div>
-                             <p className="text-sm text-gray-500">Most popular for homeowners.</p>
+                             <p className="text-xs text-gray-500">Essential tools for casual redesigns.</p>
+                             {selectedPlanTier === 'pro' && <div className="absolute top-1/2 -left-2 -translate-y-1/2 bg-brand-taupe text-white rounded-full p-1"><Check size={12}/></div>}
                          </div>
+
+                         {/* Premium Card */}
+                         <div 
+                            onClick={() => setSelectedPlanTier('premium')}
+                            className={`p-4 border-2 rounded-xl cursor-pointer transition-all relative ${selectedPlanTier === 'premium' ? 'border-brand-taupe bg-brand-cream/30 ring-1 ring-brand-taupe' : 'border-gray-100 hover:border-brand-taupe/50'}`}
+                         >
+                             <div className="absolute -top-3 right-4 bg-brand-rose text-brand-taupe text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Most Popular</div>
+                             <div className="flex justify-between items-center mb-1">
+                                 <span className="font-bold text-gray-900">Premium</span>
+                                 <span className="font-bold text-gray-900">${PRICING[billingCycle].premium}<span className="text-xs font-normal text-gray-500">/mo</span></span>
+                             </div>
+                             <p className="text-xs text-gray-500">For serious homeowners & creators.</p>
+                             {selectedPlanTier === 'premium' && <div className="absolute top-1/2 -left-2 -translate-y-1/2 bg-brand-taupe text-white rounded-full p-1"><Check size={12}/></div>}
+                         </div>
+
+                         {/* Ultra Card */}
                          <div 
                             onClick={() => setSelectedPlanTier('ultra')}
-                            className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${selectedPlanTier === 'ultra' ? 'border-brand-taupe bg-brand-cream' : 'border-gray-200 hover:border-brand-taupe'}`}
+                            className={`p-4 border-2 rounded-xl cursor-pointer transition-all relative ${selectedPlanTier === 'ultra' ? 'border-brand-taupe bg-brand-cream/30 ring-1 ring-brand-taupe' : 'border-gray-100 hover:border-brand-taupe/50'}`}
                          >
                              <div className="flex justify-between items-center mb-1">
                                  <span className="font-bold text-gray-900">Ultra</span>
-                                 <span className="font-bold text-gray-900">$99/mo</span>
+                                 <span className="font-bold text-gray-900">${PRICING[billingCycle].ultra}<span className="text-xs font-normal text-gray-500">/mo</span></span>
                              </div>
-                             <p className="text-sm text-gray-500">For professionals & large estates.</p>
+                             <p className="text-xs text-gray-500">For large estates & professionals.</p>
+                             {selectedPlanTier === 'ultra' && <div className="absolute top-1/2 -left-2 -translate-y-1/2 bg-brand-taupe text-white rounded-full p-1"><Check size={12}/></div>}
                          </div>
                      </div>
-                     <Button onClick={() => setShowSignupModal(true)} disabled={!selectedPlanTier} fullWidth className="py-3 text-lg">
-                         Continue to Checkout
+
+                     <Button onClick={handleInitiateCheckout} disabled={!selectedPlanTier} fullWidth className="py-3 text-lg mb-3 shadow-lg">
+                         Continue with {selectedPlanTier ? selectedPlanTier.charAt(0).toUpperCase() + selectedPlanTier.slice(1) : 'Plan'}
                      </Button>
-                     <button onClick={() => setState(prev => ({...prev, step: AppStep.LANDING}))} className="mt-4 text-sm text-center text-gray-500 hover:text-gray-900 hover:underline">
-                         Back to Home
+                     <button onClick={() => setState(prev => ({...prev, step: AppStep.LANDING}))} className="text-xs text-center text-gray-400 hover:text-gray-900 hover:underline">
+                         Maybe later, take me home
                      </button>
                  </div>
              </div>
          </div>
       )}
+
+      {/* Auth Verification Modal for Payment */}
+      <AuthVerificationModal 
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          onVerified={handlePaymentVerificationSuccess}
+          planName={selectedPlanTier ? `${selectedPlanTier.charAt(0).toUpperCase() + selectedPlanTier.slice(1)} Plan` : 'Plan'}
+          baseAmountUSD={currentTotalAmountUSD}
+      />
 
       {/* --- Onboarding Step --- */}
       {state.step === AppStep.ONBOARDING && (
