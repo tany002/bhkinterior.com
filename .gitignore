@@ -1,1 +1,8 @@
-��^
+# System and build files
+.DS_Store
+dist/
+node_modules/
+
+# Backups and temp scripts
+*.bak
+sync-github.sh
