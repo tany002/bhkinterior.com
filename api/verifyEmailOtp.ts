@@ -1,6 +1,6 @@
 
 // api/verifyEmailOtp.ts
-import { otpStore } from "./otpStore";
+import { otpStore } from "./otpStore.js";
 
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {

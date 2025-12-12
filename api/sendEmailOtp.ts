@@ -1,5 +1,5 @@
 // api/sendEmailOtp.ts
-import { otpStore } from "./otpStore";
+import { otpStore } from "./otpStore.js";
 import { Resend } from "resend";
 
 export default async function handler(req: any, res: any) {
