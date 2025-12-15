@@ -13,7 +13,7 @@ export default async function handler(req: any, res: any) {
     return res.status(400).json({ error: "Email and OTP are required" });
   }
 
-  const record = otpStore.get(email);
+  const record = await otpStore.get(email);
 
   // 1. Check if OTP exists
   if (!record) {
@@ -22,14 +22,14 @@ export default async function handler(req: any, res: any) {
 
   // 2. Check for expiration
   if (Date.now() > record.expiresAt) {
-    otpStore.delete(email);
+    await otpStore.delete(email);
     return res.status(400).json({ verified: false, error: "OTP has expired." });
   }
 
   // 3. Validate Code
   if (record.otp === otp) {
     // Success - Clear OTP to prevent reuse
-    otpStore.delete(email);
+    await otpStore.delete(email);
     
     console.log(`✅ OTP Verified for ${email}`);
     

@@ -1,20 +1,13 @@
+import { kv } from "@vercel/kv";
 
-// api/otpStore.ts
-
-// Global in-memory store for OTPs.
-// In a serverless environment (like Vercel), this works for "warm" lambda instances.
-// For production scale, use Redis or a database.
-
-interface OtpRecord {
-  otp: string;
-  expiresAt: number;
-}
-
-// Attach to global scope to persist across hot reloads in development
-const globalStore = global as unknown as { otpStore: Map<string, OtpRecord> };
-
-if (!globalStore.otpStore) {
-  globalStore.otpStore = new Map();
-}
-
-export const otpStore = globalStore.otpStore;
+export const otpStore = {
+  async set(email: string, data: { otp: string; expiresAt: number }) {
+    await kv.set(`otp:${email}`, data, { ex: 300 }); // expires in 5 min
+  },
+  async get(email: string) {
+    return await kv.get<{ otp: string; expiresAt: number }>(`otp:${email}`);
+  },
+  async delete(email: string) {
+    await kv.del(`otp:${email}`);
+  },
+};

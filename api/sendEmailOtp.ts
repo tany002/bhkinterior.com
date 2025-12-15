@@ -21,7 +21,7 @@ export default async function handler(req: any, res: any) {
 
     // Generate OTP and store
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    otpStore.set(email, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
+    await otpStore.set(email, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
     console.log(`🔐 OTP generated for ${email}: ${otp}`);
 
     // Send via Resend
