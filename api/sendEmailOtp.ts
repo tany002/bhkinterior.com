@@ -27,7 +27,7 @@ export default async function handler(req: any, res: any) {
     // Send via Resend
     const resend = new Resend(resendApiKey);
     const { error } = await resend.emails.send({
-      from: "BHK Interior <onboarding@resend.dev>",
+      from: "BHK Interior <no-reply@bhkinterior.com>",
       to: email,
       subject: "Your Verification Code",
       html: `
