@@ -12,10 +12,14 @@ interface LandingPricingProps {
 
 export const LandingPricing: React.FC<LandingPricingProps> = ({ billingCycle, setBillingCycle, handlePlanSelect }) => {
   
+  // Updated Pricing Logic in INR
+  // Pro: 599 | Premium: 799 | Ultra: 999
+  // 6mo discount: ~4.99%
+  // Yearly discount: ~14.99%
   const pricing = {
-      monthly: { pro: 49, premium: 179, ultra: 199 },
-      half_yearly: { pro: 42.99, premium: 159, ultra: 182.99 },
-      yearly: { pro: 39, premium: 149, ultra: 169 }
+      monthly: { pro: 599, premium: 799, ultra: 999 },
+      half_yearly: { pro: 569, premium: 759, ultra: 949 },
+      yearly: { pro: 509, premium: 679, ultra: 849 }
   };
 
   return (
@@ -28,7 +32,7 @@ export const LandingPricing: React.FC<LandingPricingProps> = ({ billingCycle, se
                 
                 {/* Toggle */}
                 <div className="inline-flex bg-white p-1.5 rounded-full shadow-sm border border-brand-rose/30">
-                    {[{id:'monthly', label:'Monthly'}, {id:'half_yearly', label:'6 Months', tag:'-15%'}, {id:'yearly', label:'Yearly', tag:'-30%'}].map(cycle => (
+                    {[{id:'monthly', label:'Monthly'}, {id:'half_yearly', label:'6 Months', tag:'-5%'}, {id:'yearly', label:'Yearly', tag:'-15%'}].map(cycle => (
                         <button 
                             key={cycle.id}
                             onClick={() => setBillingCycle(cycle.id as any)}
@@ -48,7 +52,7 @@ export const LandingPricing: React.FC<LandingPricingProps> = ({ billingCycle, se
                         <h3 className="text-xl font-bold text-brand-taupe mb-2">Pro</h3>
                         <p className="text-sm text-brand-taupe/60">Essential tools for casual redesigns.</p>
                     </div>
-                    <div className="text-4xl font-bold mb-6 text-brand-taupe">${pricing[billingCycle].pro}<span className="text-lg font-medium text-brand-taupe/50">/mo</span></div>
+                    <div className="text-4xl font-bold mb-6 text-brand-taupe">₹{pricing[billingCycle].pro}<span className="text-lg font-medium text-brand-taupe/50">/mo</span></div>
                     
                     <Button 
                         variant="outline" 
@@ -74,7 +78,7 @@ export const LandingPricing: React.FC<LandingPricingProps> = ({ billingCycle, se
                         <h3 className="text-2xl font-bold">Premium</h3>
                         <p className="text-sm text-brand-cream/60">For serious homeowners & creators.</p>
                     </div>
-                    <div className="text-5xl font-bold mb-8">${pricing[billingCycle].premium}<span className="text-lg font-medium text-brand-cream/50">/mo</span></div>
+                    <div className="text-5xl font-bold mb-8">₹{pricing[billingCycle].premium}<span className="text-lg font-medium text-brand-cream/50">/mo</span></div>
                     
                     <Button 
                         fullWidth 
@@ -99,7 +103,7 @@ export const LandingPricing: React.FC<LandingPricingProps> = ({ billingCycle, se
                         <h3 className="text-xl font-bold text-brand-taupe mb-2">Ultra</h3>
                         <p className="text-sm text-brand-taupe/60">For large estates & professionals.</p>
                     </div>
-                    <div className="text-4xl font-bold mb-6 text-brand-taupe">${pricing[billingCycle].ultra}<span className="text-lg font-medium text-brand-taupe/50">/mo</span></div>
+                    <div className="text-4xl font-bold mb-6 text-brand-taupe">₹{pricing[billingCycle].ultra}<span className="text-lg font-medium text-brand-taupe/50">/mo</span></div>
                     
                     <Button 
                         variant="outline" 
@@ -119,7 +123,7 @@ export const LandingPricing: React.FC<LandingPricingProps> = ({ billingCycle, se
                 </div>
             </div>
             
-            <p className="text-center text-brand-taupe/60 text-sm mt-12 font-medium">Prices in USD. Cancel anytime.</p>
+            <p className="text-center text-brand-taupe/60 text-sm mt-12 font-medium">Prices in INR. Cancel anytime.</p>
         </div>
     </section>
   );
