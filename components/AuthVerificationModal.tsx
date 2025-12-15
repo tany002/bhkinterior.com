@@ -8,7 +8,7 @@ interface AuthVerificationModalProps {
   onClose: () => void;
   onVerified: (data: { email: string; phone: string; countryCode: string; name?: string }) => void;
   planName: string;
-  baseAmountUSD: number;
+  baseAmount: number;
 }
 
 type Step = 'EMAIL_INPUT' | 'EMAIL_VERIFY' | 'PHONE_INPUT' | 'SUCCESS';
@@ -29,7 +29,7 @@ export const AuthVerificationModal: React.FC<AuthVerificationModalProps> = ({
   onClose, 
   onVerified,
   planName,
-  baseAmountUSD
+  baseAmount
 }) => {
   const [step, setStep] = useState<Step>('EMAIL_INPUT');
   const [isLoading, setIsLoading] = useState(false);
@@ -266,7 +266,7 @@ export const AuthVerificationModal: React.FC<AuthVerificationModalProps> = ({
                     <div className="bg-stone-50 border border-stone-200 rounded-lg p-4 flex justify-between items-center mb-4">
                         <div>
                             <p className="text-xs font-bold text-gray-400 uppercase">Total Amount</p>
-                            <p className="text-2xl font-serif font-bold text-brand-taupe">${baseAmountUSD}</p>
+                            <p className="text-2xl font-serif font-bold text-brand-taupe">₹{baseAmount}</p>
                         </div>
                         <div className="text-right">
                              <p className="text-xs font-bold text-gray-400 uppercase">Billing Currency</p>
