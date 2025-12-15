@@ -762,7 +762,7 @@ function App() {
                   </span>
                 }
                 subheadline="Step into the future of home design with AI-powered 8K renders and fully interactive 3D walkthroughs created instantly"
-                ctaText="Get Started — Just ₹509/Month"
+                ctaText="Get Started — Just ₹599/Month"
                 onCtaClick={handleStartFlow}
                 onSecondaryClick={() => {
                    document.getElementById('gallery')?.scrollIntoView({ behavior: 'smooth' });
