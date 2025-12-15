@@ -174,12 +174,15 @@ function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [newMemberPhone, setNewMemberPhone] = useState('');
 
-  // Pricing Logic (Centralized)
-  // Explicitly typed to prevent TS7053 error
+  // Pricing Logic (INR)
+  // Base Prices: Pro 599, Premium 799, Ultra 999
+  // Monthly: Base
+  // 6 Months: Base * 0.9501 (4.99% off)
+  // Yearly: Base * 0.8501 (14.99% off)
   const PRICING: Record<BillingCycle, Record<SubscriptionTier, number>> = {
-      monthly: { free: 0, pro: 49, premium: 179, ultra: 199 },
-      half_yearly: { free: 0, pro: 42.99, premium: 159, ultra: 182.99 },
-      yearly: { free: 0, pro: 39, premium: 149, ultra: 169 }
+      monthly: { free: 0, pro: 599, premium: 799, ultra: 999 },
+      half_yearly: { free: 0, pro: 569, premium: 759, ultra: 949 },
+      yearly: { free: 0, pro: 509, premium: 679, ultra: 849 }
   };
   
   // Calculate multiplier for total contract value
@@ -249,7 +252,7 @@ function App() {
     if (!selectedPlanTier || selectedPlanTier === 'free') return;
     
     // 1. Determine local currency code based on country
-    let targetCurrency = 'USD';
+    let targetCurrency = 'INR'; // Default to INR now
     
     switch (data.countryCode) {
         case '+91': targetCurrency = 'INR'; break;
@@ -260,13 +263,14 @@ function App() {
         case '+971': targetCurrency = 'AED'; break;
         case '+61': targetCurrency = 'AUD'; break;
         case '+1-CA': targetCurrency = 'CAD'; break;
-        default: targetCurrency = 'USD'; break;
+        case '+1': targetCurrency = 'USD'; break;
+        default: targetCurrency = 'INR'; break;
     }
     
-    // 2. Calculate Base USD Amount
-    const monthlyRateUSD = PRICING[billingCycle][selectedPlanTier];
+    // 2. Calculate Base INR Amount
+    const monthlyRateINR = PRICING[billingCycle][selectedPlanTier];
     const multiplier = getBillingMultiplier(billingCycle);
-    const totalBaseUSD = monthlyRateUSD * multiplier;
+    const totalBaseINR = monthlyRateINR * multiplier;
     
     // 3. Setup User Profile State (Optimistic)
     let maxDesigns = 1;
@@ -291,9 +295,9 @@ function App() {
     }));
 
     // 4. Trigger Backend Order
-    // NOTE: We send USD amount. Backend handles exchange rate conversion.
+    // We send INR amount. Backend handles exchange rate conversion if needed.
     try {
-        const order = await createOrder(totalBaseUSD, { email: data.email, phone: fullPhone }, targetCurrency);
+        const order = await createOrder(totalBaseINR, { email: data.email, phone: fullPhone }, targetCurrency);
         
         if (order.success && order.paymentSessionId) {
             // 5. Redirect to Payment Gateway
@@ -718,7 +722,7 @@ function App() {
   };
   
   // Safe check for free tier to prevent indexing error
-  const currentTotalAmountUSD = (selectedPlanTier && selectedPlanTier !== 'free')
+  const currentTotalAmountINR = (selectedPlanTier && selectedPlanTier !== 'free')
       ? PRICING[billingCycle][selectedPlanTier] * getMultiplier(billingCycle)
       : 0;
 
@@ -740,7 +744,7 @@ function App() {
                     onClick={() => handleStartFlow()} 
                     className="!bg-[#3B2F2F] !text-[#F8F4EE] hover:!bg-[#5A4545] text-sm px-5 py-2.5 rounded-full font-bold shadow-lg hover:shadow-xl transition-all"
                   >
-                    Get Started — Just $39/Month
+                    Get Started — Just ₹509/Month
                   </Button>
               </div>
               <button className="md:hidden text-brand-taupe">
@@ -758,7 +762,7 @@ function App() {
                   </span>
                 }
                 subheadline="Step into the future of home design with AI-powered 8K renders and fully interactive 3D walkthroughs created instantly"
-                ctaText="Get Started — Just $39/Month"
+                ctaText="Get Started — Just ₹509/Month"
                 onCtaClick={handleStartFlow}
                 onSecondaryClick={() => {
                    document.getElementById('gallery')?.scrollIntoView({ behavior: 'smooth' });
@@ -834,7 +838,7 @@ function App() {
                          
                          {/* Billing Toggle */}
                          <div className="inline-flex bg-gray-100 p-1 rounded-full shadow-inner">
-                            {[{id:'monthly', label:'Monthly'}, {id:'half_yearly', label:'6 Mo', tag:'-15%'}, {id:'yearly', label:'Yearly', tag:'-30%'}].map(cycle => (
+                            {[{id:'monthly', label:'Monthly'}, {id:'half_yearly', label:'6 Mo', tag:'-5%'}, {id:'yearly', label:'Yearly', tag:'-15%'}].map(cycle => (
                                 <button 
                                     key={cycle.id}
                                     onClick={() => setBillingCycle(cycle.id as any)}
@@ -855,7 +859,7 @@ function App() {
                          >
                              <div className="flex justify-between items-center mb-1">
                                  <span className="font-bold text-gray-900">Pro</span>
-                                 <span className="font-bold text-gray-900">${PRICING[billingCycle].pro}<span className="text-xs font-normal text-gray-500">/mo</span></span>
+                                 <span className="font-bold text-gray-900">₹{PRICING[billingCycle].pro}<span className="text-xs font-normal text-gray-500">/mo</span></span>
                              </div>
                              <p className="text-xs text-gray-500">Essential tools for casual redesigns.</p>
                              {selectedPlanTier === 'pro' && <div className="absolute top-1/2 -left-2 -translate-y-1/2 bg-brand-taupe text-white rounded-full p-1"><Check size={12}/></div>}
@@ -869,7 +873,7 @@ function App() {
                              <div className="absolute -top-3 right-4 bg-brand-rose text-brand-taupe text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Most Popular</div>
                              <div className="flex justify-between items-center mb-1">
                                  <span className="font-bold text-gray-900">Premium</span>
-                                 <span className="font-bold text-gray-900">${PRICING[billingCycle].premium}<span className="text-xs font-normal text-gray-500">/mo</span></span>
+                                 <span className="font-bold text-gray-900">₹{PRICING[billingCycle].premium}<span className="text-xs font-normal text-gray-500">/mo</span></span>
                              </div>
                              <p className="text-xs text-gray-500">For serious homeowners & creators.</p>
                              {selectedPlanTier === 'premium' && <div className="absolute top-1/2 -left-2 -translate-y-1/2 bg-brand-taupe text-white rounded-full p-1"><Check size={12}/></div>}
@@ -882,7 +886,7 @@ function App() {
                          >
                              <div className="flex justify-between items-center mb-1">
                                  <span className="font-bold text-gray-900">Ultra</span>
-                                 <span className="font-bold text-gray-900">${PRICING[billingCycle].ultra}<span className="text-xs font-normal text-gray-500">/mo</span></span>
+                                 <span className="font-bold text-gray-900">₹{PRICING[billingCycle].ultra}<span className="text-xs font-normal text-gray-500">/mo</span></span>
                              </div>
                              <p className="text-xs text-gray-500">For large estates & professionals.</p>
                              {selectedPlanTier === 'ultra' && <div className="absolute top-1/2 -left-2 -translate-y-1/2 bg-brand-taupe text-white rounded-full p-1"><Check size={12}/></div>}
@@ -906,7 +910,7 @@ function App() {
           onClose={() => setShowAuthModal(false)}
           onVerified={handlePaymentVerificationSuccess}
           planName={selectedPlanTier ? `${selectedPlanTier.charAt(0).toUpperCase() + selectedPlanTier.slice(1)} Plan` : 'Plan'}
-          baseAmountUSD={currentTotalAmountUSD}
+          baseAmount={currentTotalAmountINR}
       />
 
       {/* --- Onboarding Step --- */}
