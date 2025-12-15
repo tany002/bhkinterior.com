@@ -744,7 +744,7 @@ function App() {
                     onClick={() => handleStartFlow()} 
                     className="!bg-[#3B2F2F] !text-[#F8F4EE] hover:!bg-[#5A4545] text-sm px-5 py-2.5 rounded-full font-bold shadow-lg hover:shadow-xl transition-all"
                   >
-                    Get Started — Just ₹509/Month
+                    Get Started — Just ₹599/Month
                   </Button>
               </div>
               <button className="md:hidden text-brand-taupe">
