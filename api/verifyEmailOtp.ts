@@ -1,6 +1,5 @@
-
 // api/verifyEmailOtp.ts
-import { otpStore } from "./otpStore.js";
+import { getOtp, deleteOtp } from "./otpStore.js";
 
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
@@ -13,31 +12,46 @@ export default async function handler(req: any, res: any) {
     return res.status(400).json({ error: "Email and OTP are required" });
   }
 
-  const record = await otpStore.get(email);
+  try {
+    const record = await getOtp(email);
 
-  // 1. Check if OTP exists
-  if (!record) {
-    return res.status(400).json({ verified: false, error: "OTP not found or expired. Request a new one." });
-  }
+    // 1️⃣ OTP not found
+    if (!record) {
+      return res.status(400).json({
+        verified: false,
+        error: "OTP not found or expired. Request a new one.",
+      });
+    }
 
-  // 2. Check for expiration
-  if (Date.now() > record.expiresAt) {
-    await otpStore.delete(email);
-    return res.status(400).json({ verified: false, error: "OTP has expired." });
-  }
+    // 2️⃣ OTP expired
+    if (Date.now() > record.expiresAt) {
+      await deleteOtp(email);
+      return res.status(400).json({
+        verified: false,
+        error: "OTP has expired.",
+      });
+    }
 
-  // 3. Validate Code
-  if (record.otp === otp) {
-    // Success - Clear OTP to prevent reuse
-    await otpStore.delete(email);
-    
-    console.log(`✅ OTP Verified for ${email}`);
-    
-    return res.status(200).json({ 
-      verified: true,
-      message: "Email verified successfully" 
+    // 3️⃣ OTP match
+    if (record.otp === otp) {
+      await deleteOtp(email);
+      console.log(`✅ OTP Verified for ${email}`);
+
+      return res.status(200).json({
+        verified: true,
+        message: "Email verified successfully",
+      });
+    } else {
+      return res.status(400).json({
+        verified: false,
+        error: "Invalid OTP.",
+      });
+    }
+  } catch (error) {
+    console.error("❌ verifyEmailOtp Error:", error);
+    return res.status(500).json({
+      verified: false,
+      error: "Internal server error. Please try again.",
     });
-  } else {
-    return res.status(400).json({ verified: false, error: "Invalid OTP." });
   }
 }

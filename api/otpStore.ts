@@ -1,35 +1,28 @@
 // api/otpStore.ts
 import { Redis } from "@upstash/redis";
 
-// Support both Upstash defaults and your bhk-prefixed variables
-const redisUrl =
-  process.env.UPSTASH_REDIS_REST_URL ||
-  process.env.bhk_KV_REST_API_URL ||
-  process.env.bhk_REDIS_URL;
-
-const redisToken =
-  process.env.UPSTASH_REDIS_REST_TOKEN ||
-  process.env.bhk_KV_REST_API_TOKEN;
-
-if (!redisUrl || !redisToken) {
-  console.error("❌ Missing Upstash Redis environment variables");
-  throw new Error("Upstash Redis not configured properly");
-}
-
-export const kv = new Redis({
-  url: redisUrl,
-  token: redisToken,
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 });
 
-export const otpStore = {
-  async set(email: string, data: { otp: string; expiresAt: number }) {
-    await kv.set(email, JSON.stringify(data), { ex: 300 }); // expires in 5 minutes
-  },
-  async get(email: string) {
-    const val = await kv.get<string>(email);
-    return val ? JSON.parse(val) : null;
-  },
-  async delete(email: string) {
-    await kv.del(email);
-  },
-};
+interface OtpRecord {
+  otp: string;
+  expiresAt: number;
+}
+
+export async function setOtp(email: string, otp: string) {
+  const record: OtpRecord = { otp, expiresAt: Date.now() + 5 * 60 * 1000 };
+  await redis.set(`otp:${email}`, JSON.stringify(record), { ex: 300 });
+  console.log(`✅ Stored OTP for ${email}`);
+}
+
+export async function getOtp(email: string): Promise<OtpRecord | null> {
+  const data = await redis.get<string>(`otp:${email}`);
+  return data ? (JSON.parse(data) as OtpRecord) : null;
+}
+
+export async function deleteOtp(email: string) {
+  await redis.del(`otp:${email}`);
+  console.log(`🧹 Deleted OTP for ${email}`);
+}
