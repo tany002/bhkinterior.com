@@ -203,10 +203,10 @@ function App() {
   const orderId = urlParams.get("order_id");
   const paymentStatus = urlParams.get("status");
 
-  if (paymentStatus === "success" && orderId) {
+  // Only run if Cashfree returned with a status
+  if (paymentStatus && orderId) {
     (async () => {
       try {
-        // Call backend to verify real payment
         const verifyRes = await fetch("/api/verifyPayment", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -214,26 +214,29 @@ function App() {
         });
         const result = await verifyRes.json();
 
-        if (result.success) {
-          // ✅ Only unlock onboarding if payment truly completed
+        if (result.success && result.status === "PAID") {
+          // ✅ Verified payment success — allow onboarding
           setState(prev => ({
             ...prev,
             step: AppStep.ONBOARDING,
             userProfile: { ...prev.userProfile, isSubscribed: true },
           }));
         } else {
-          alert("⚠️ Payment not completed. Please try again.");
-          setState(prev => ({ ...prev, step: AppStep.PAYWALL }));
+          // 🚫 Payment not complete — redirect to homepage
+          setState(prev => ({ ...prev, step: AppStep.LANDING }));
         }
 
-        // Clean up URL after check
+        // Clean URL
         window.history.replaceState({}, document.title, window.location.pathname);
       } catch (err) {
-        console.error("Verify payment failed", err);
-        alert("Unable to verify payment. Please try again.");
-        setState(prev => ({ ...prev, step: AppStep.PAYWALL }));
+        console.error("⚠️ Payment verification failed", err);
+        // In case of any issue, go back to homepage
+        setState(prev => ({ ...prev, step: AppStep.LANDING }));
       }
     })();
+  } else {
+    // No payment flow in progress, normal homepage load
+    setState(prev => ({ ...prev, step: AppStep.LANDING }));
   }
 }, []);
 
