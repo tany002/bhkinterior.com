@@ -196,24 +196,47 @@ function App() {
   };
 
   // Domain Branding & Payment Callback Handling
-  useEffect(() => {
-    document.title = "BHKInterior.com | AI Home Design Studio";
-    
-    // Check for Cashfree Return
-    const urlParams = new URLSearchParams(window.location.search);
-    const paymentStatus = urlParams.get('status');
-    
-    if (paymentStatus === 'success') {
-       // Unlock app features on successful return
-       setState(prev => ({ 
-           ...prev, 
-           step: AppStep.ONBOARDING,
-           userProfile: { ...prev.userProfile, isSubscribed: true }
-       }));
-       // Clean URL
-       window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  }, []);
+ useEffect(() => {
+  document.title = "BHKInterior.com | AI Home Design Studio";
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const orderId = urlParams.get("order_id");
+  const paymentStatus = urlParams.get("status");
+
+  if (paymentStatus === "success" && orderId) {
+    (async () => {
+      try {
+        // Call backend to verify real payment
+        const verifyRes = await fetch("/api/verifyPayment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId }),
+        });
+        const result = await verifyRes.json();
+
+        if (result.success) {
+          // ✅ Only unlock onboarding if payment truly completed
+          setState(prev => ({
+            ...prev,
+            step: AppStep.ONBOARDING,
+            userProfile: { ...prev.userProfile, isSubscribed: true },
+          }));
+        } else {
+          alert("⚠️ Payment not completed. Please try again.");
+          setState(prev => ({ ...prev, step: AppStep.PAYWALL }));
+        }
+
+        // Clean up URL after check
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } catch (err) {
+        console.error("Verify payment failed", err);
+        alert("Unable to verify payment. Please try again.");
+        setState(prev => ({ ...prev, step: AppStep.PAYWALL }));
+      }
+    })();
+  }
+}, []);
+
 
   // --- Handlers ---
   const handleStartFlow = (registrationData?: { name: string; email: string; phone: string }) => {
