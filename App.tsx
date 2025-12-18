@@ -23,6 +23,7 @@ import { LandingFooter } from './components/LandingFooter';
 import { Landing3DTeaser } from './components/Landing3DTeaser';
 import { OnboardingBackground } from './components/OnboardingBackground';
 import { AuthVerificationModal } from './components/AuthVerificationModal';
+import { ContactPage } from "./components/ContactPage";
 
 import { 
   ArrowRight,
@@ -1056,6 +1057,10 @@ function App() {
               </div>
           </div>
       )}
+      
+      {state.step === AppStep.CONTACT && (
+  <ContactPage onBack={() => setState(prev => ({ ...prev, step: AppStep.LANDING }))} />
+       )}
 
       {/* --- Main App Header (For authenticated steps) --- */}
       {state.step !== AppStep.LANDING && state.step !== AppStep.PAYWALL && state.step !== AppStep.ONBOARDING && (
