@@ -17,6 +17,7 @@ export default async function handler(req: any, res: any) {
       : "https://sandbox.cashfree.com/pg/orders";
 
   try {
+    // 🔍 Fetch order details from Cashfree
     const resp = await fetch(`${BASE_URL}/${orderId}`, {
       method: "GET",
       headers: {
@@ -34,7 +35,38 @@ export default async function handler(req: any, res: any) {
     }
 
     const paid = data.order_status === "PAID";
-    return res.status(200).json({ success: paid, status: data.order_status, data });
+
+    // 🧠 Extract metadata safely (email, plan, billing cycle)
+    let email = null;
+    let plan = null;
+    let billingCycle = null;
+
+    try {
+      if (data.order_meta?.payment_notes) {
+        const notes =
+          typeof data.order_meta.payment_notes === "string"
+            ? JSON.parse(data.order_meta.payment_notes)
+            : data.order_meta.payment_notes;
+
+        email = notes?.email || data.customer_details?.customer_email || null;
+        plan = notes?.plan || "unknown";
+        billingCycle = notes?.billingCycle || "monthly";
+      } else {
+        email = data.customer_details?.customer_email || null;
+      }
+    } catch (e) {
+      console.warn("⚠️ Could not parse payment notes:", e);
+    }
+
+    // ✅ Return clean structured data
+    return res.status(200).json({
+      success: paid,
+      status: data.order_status,
+      email,
+      plan,
+      billingCycle,
+      data,
+    });
   } catch (err: any) {
     console.error("💥 VerifyPayment Exception:", err);
     return res.status(500).json({ success: false, error: err.message });
