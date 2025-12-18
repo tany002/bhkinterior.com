@@ -217,16 +217,27 @@ function App() {
         const result = await verifyRes.json();
 
         if (result.success && result.status === "PAID") {
-          // ✅ Verified payment success — allow onboarding
-          setState(prev => ({
-            ...prev,
-            step: AppStep.ONBOARDING,
-            userProfile: { ...prev.userProfile, isSubscribed: true },
-          }));
-        } else {
-          // 🚫 Payment not complete — redirect to homepage
-          setState(prev => ({ ...prev, step: AppStep.LANDING }));
-        }
+  const userProfile = {
+    email: result.email,
+    plan: result.plan,
+    billingCycle: result.billingCycle,
+    verifiedAt: result.verifiedAt,
+    expiry: result.expiry,
+    isSubscribed: true,
+  };
+
+  // Store locally
+  localStorage.setItem("bhk_user_profile", JSON.stringify(userProfile));
+
+  // Update app state
+  setState(prev => ({
+    ...prev,
+    step: AppStep.ONBOARDING,
+    userProfile: { ...prev.userProfile, ...userProfile },
+  }));
+} else {
+  setState(prev => ({ ...prev, step: AppStep.LANDING }));
+}
 
         // Clean URL
         window.history.replaceState({}, document.title, window.location.pathname);
@@ -241,6 +252,32 @@ function App() {
     setState(prev => ({ ...prev, step: AppStep.LANDING }));
   }
 }, []);
+
+// 🧩 Auto-restore user session if previously paid
+useEffect(() => {
+  const savedProfile = localStorage.getItem("bhk_user_profile");
+  if (savedProfile) {
+    try {
+      const user = JSON.parse(savedProfile);
+      const now = Date.now();
+      if (user.isSubscribed && user.expiry && now < user.expiry) {
+        console.log("✅ Restored active user:", user.email);
+        setState(prev => ({
+          ...prev,
+          step: AppStep.ONBOARDING,
+          userProfile: { ...prev.userProfile, ...user },
+        }));
+      } else {
+        console.warn("⚠️ Subscription expired or invalid:", user.email);
+        localStorage.removeItem("bhk_user_profile");
+      }
+    } catch (e) {
+      console.error("💥 Failed to restore local profile:", e);
+    }
+  }
+}, []);
+  
+  
   
 // 📨 Handle "Contact" button click from footer + URL sync
 useEffect(() => {
