@@ -14,7 +14,7 @@ export enum AppStep {
   PROCESSING = 'PROCESSING',
   RESULTS = 'RESULTS',
   SAVED_DESIGNS = 'SAVED_DESIGNS',
-  CONTACT = "CONTACT" 
+  CONTACT = "CONTACT",
 }
 
 export type DesignRegion = 'North America' | 'Europe' | 'India' | 'South America' | 'SE Asia' | 'Africa' | 'Global';
