@@ -1,9 +1,7 @@
-// api/verifyPayment.ts
+// /api/verifyPayment.ts
 import type { IncomingMessage, ServerResponse } from "http";
 
-// This handler is compatible with Vercel Edge & Node runtimes
 export default async function handler(req: IncomingMessage & { body?: any }, res: ServerResponse) {
-  // Collect the request body (for Vercel Node environments)
   let body = "";
   req.on("data", chunk => (body += chunk));
   req.on("end", async () => {
@@ -48,13 +46,37 @@ export default async function handler(req: IncomingMessage & { body?: any }, res
 
       const paid = data.order_status === "PAID";
 
+      // 🧠 Extract stored payment details
+      let userMeta: any = {};
+      try {
+        const notes = data.order_meta?.payment_notes;
+        if (notes) userMeta = JSON.parse(notes);
+      } catch {
+        userMeta = {};
+      }
+
+      const verifiedAt = Date.now();
+      let expiry = verifiedAt;
+
+      // ⏳ Calculate plan expiry based on billing cycle
+      const cycle = userMeta.billingCycle || "monthly";
+      if (cycle === "monthly") expiry += 30 * 24 * 60 * 60 * 1000;
+      else if (cycle === "half_yearly") expiry += 180 * 24 * 60 * 60 * 1000;
+      else if (cycle === "yearly") expiry += 365 * 24 * 60 * 60 * 1000;
+
       res.statusCode = 200;
       res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({
-        success: paid,
-        status: data.order_status,
-        data,
-      }));
+      res.end(
+        JSON.stringify({
+          success: paid,
+          status: data.order_status,
+          email: userMeta.email || "unknown",
+          plan: userMeta.plan || "unknown",
+          billingCycle: cycle,
+          verifiedAt,
+          expiry,
+        })
+      );
     } catch (error: any) {
       console.error("💥 verifyPayment Exception:", error);
       res.statusCode = 500;
