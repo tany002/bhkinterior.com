@@ -31,7 +31,7 @@ We will achieve PMF by targeting **underserved segments** who cannot afford trad
 3.  **The Real Estate Agent (Secondary):** Needs to stage empty listings virtually to sell properties faster.
 
 ### The "Hair on Fire" Problem
-*   **Cost:** Human designers charge $2,000+. We charge ~$40.
+*   **Cost:** Human designers charge Rs 1,00,000+. We charge ~Rs.599.
 *   **Time:** Humans take 2-4 weeks. We take < 60 seconds.
 *   **Confidence:** Buying furniture is high-risk. "Will this sofa fit?" Our 3D Scale/Layout engine removes this anxiety.
 
