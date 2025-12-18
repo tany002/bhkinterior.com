@@ -240,6 +240,16 @@ function App() {
     setState(prev => ({ ...prev, step: AppStep.LANDING }));
   }
 }, []);
+  
+// 📨 Handle "Contact" button click from footer
+useEffect(() => {
+  const handler = () => {
+    setState(prev => ({ ...prev, step: AppStep.CONTACT }));
+  };
+
+  window.addEventListener("open-contact", handler);
+  return () => window.removeEventListener("open-contact", handler);
+}, []);  
 
 
   // --- Handlers ---
