@@ -1,27 +1,33 @@
 // /api/verifyPayment.ts
 
-import type { NextApiRequest, NextApiResponse } from "next";
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: any, res: any) {
+  // ✅ Only allow POST
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+    res.statusCode = 405;
+    res.setHeader("Content-Type", "application/json");
+    return res.end(JSON.stringify({ error: "Method not allowed" }));
   }
-
-  const { orderId } = req.body;
-  if (!orderId) {
-    return res.status(400).json({ error: "Missing orderId" });
-  }
-
-  const APP_ID = process.env.CASHFREE_APP_ID;
-  const SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
-  const ENV = process.env.CASHFREE_ENV || "sandbox";
-
-  const BASE_URL =
-    ENV === "production"
-      ? "https://api.cashfree.com/pg/orders"
-      : "https://sandbox.cashfree.com/pg/orders";
 
   try {
+    // ✅ Parse input
+    const { orderId } = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+    if (!orderId) {
+      res.statusCode = 400;
+      res.setHeader("Content-Type", "application/json");
+      return res.end(JSON.stringify({ error: "Missing orderId" }));
+    }
+
+    // ✅ Load environment variables
+    const APP_ID = process.env.CASHFREE_APP_ID;
+    const SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
+    const ENV = process.env.CASHFREE_ENV || "sandbox";
+
+    const BASE_URL =
+      ENV === "production"
+        ? "https://api.cashfree.com/pg/orders"
+        : "https://sandbox.cashfree.com/pg/orders";
+
+    // ✅ Call Cashfree API
     const resp = await fetch(`${BASE_URL}/${orderId}`, {
       method: "GET",
       headers: {
@@ -33,44 +39,74 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const data = await resp.json();
 
+    // Handle API errors
     if (!resp.ok) {
-      console.error("❌ Payment verify error:", data);
-      return res.status(resp.status).json({ success: false, data });
+      console.error("❌ Cashfree Verify API Error:", data);
+      res.statusCode = resp.status;
+      res.setHeader("Content-Type", "application/json");
+      return res.end(JSON.stringify({ success: false, data }));
     }
 
+    // ✅ Extract key details
     const paid = data.order_status === "PAID";
-
     const email = data.customer_details?.customer_email || null;
-    const plan =
-      data.order_meta?.payment_notes?.plan ||
-      data.order_meta?.payment_notes?.PLAN ||
-      "pro";
-    const billingCycle =
-      data.order_meta?.payment_notes?.billingCycle ||
-      data.order_meta?.payment_notes?.BILLINGCYCLE ||
-      "monthly";
+    const phone = data.customer_details?.customer_phone || null;
+    const plan = data.order_meta?.payment_notes?.plan || "pro";
+    const billingCycle = data.order_meta?.payment_notes?.billingCycle || "monthly";
 
-    const verifiedAt = Date.now();
+    // ✅ Compute expiry date based on billing cycle
+    const now = Date.now();
     const days =
       billingCycle === "monthly"
         ? 30
         : billingCycle === "half_yearly"
         ? 180
         : 365;
-    const expiry = verifiedAt + days * 24 * 60 * 60 * 1000;
+    const expiry = now + days * 24 * 60 * 60 * 1000;
 
-    return res.status(200).json({
-      success: paid,
-      status: data.order_status,
-      email,
-      plan,
-      billingCycle,
-      verifiedAt,
-      expiry,
-      data,
-    });
+    // ✅ Optional: persist verified payment to Redis (disabled by default)
+    /*
+    try {
+      const redisKey = `paid_user:${email}`;
+      await fetch(process.env.UPSTASH_REDIS_REST_URL!, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          command: ["SET", redisKey, JSON.stringify({ email, phone, plan, billingCycle, expiry })],
+        }),
+      });
+    } catch (err) {
+      console.warn("⚠️ Could not store payment data in Redis:", err);
+    }
+    */
+
+    // ✅ Send verification result
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    return res.end(
+      JSON.stringify({
+        success: paid,
+        status: data.order_status,
+        email,
+        phone,
+        plan,
+        billingCycle,
+        expiry,
+        data,
+      })
+    );
   } catch (err: any) {
     console.error("💥 VerifyPayment Exception:", err);
-    return res.status(500).json({ success: false, error: err.message });
+    res.statusCode = 500;
+    res.setHeader("Content-Type", "application/json");
+    return res.end(
+      JSON.stringify({
+        success: false,
+        error: err.message || "Internal Server Error",
+      })
+    );
   }
 }
