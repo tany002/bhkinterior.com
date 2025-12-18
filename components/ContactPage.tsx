@@ -51,9 +51,12 @@ export const ContactPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         </div>
 
         <button
-          onClick={onBack}
-          className="mt-10 inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand-taupe px-6 py-2.5 rounded-full hover:bg-stone-800 transition-all"
-        >
+  onClick={() => {
+    window.history.pushState({}, "", "/");
+    onBack();
+  }}
+  className="mt-10 inline-flex items-center gap-2 text-sm font-semibold text-white bg-brand-taupe px-6 py-2.5 rounded-full hover:bg-stone-800 transition-all"
+>
           Back to Home
         </button>
       </div>
