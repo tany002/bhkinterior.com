@@ -9,16 +9,20 @@ export const LandingFooter: React.FC = () => {
     { icon: Github, href: "https://github.com/tany002/bhkinterior.com" }
   ];
 
-  // Handle clicks on footer links
+  // Handle footer link interactions
   const handleLinkClick = (label: string) => {
     if (label === 'Contact') {
-      // 🔔 Trigger a global event to open the Contact Page (handled by App.tsx)
+      // 🔔 Trigger event for Contact Page (App.tsx handles this)
       window.dispatchEvent(new CustomEvent('open-contact'));
+    } else if (label === 'About Us') {
+      // 🔔 Trigger event for About Page
+      window.dispatchEvent(new CustomEvent('open-about'));
     } else if (label === 'Pricing') {
       document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
     } else if (label === 'Gallery') {
       document.getElementById('gallery')?.scrollIntoView({ behavior: 'smooth' });
     } else {
+      // Default scroll to top for other links (e.g. Privacy Policy)
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
@@ -53,7 +57,7 @@ export const LandingFooter: React.FC = () => {
           </p>
         </div>
 
-        {/* Links */}
+        {/* Footer Links */}
         <div className="flex flex-wrap justify-center gap-8 md:gap-12 text-brand-cream text-sm font-medium tracking-wide">
           {footerLinks.map((link) => (
             <button
@@ -67,7 +71,7 @@ export const LandingFooter: React.FC = () => {
           ))}
         </div>
 
-        {/* Socials */}
+        {/* Social Icons */}
         <div className="flex gap-6">
           {socials.map((item, i) => (
             <a
@@ -93,3 +97,4 @@ export const LandingFooter: React.FC = () => {
     </footer>
   );
 };
+
