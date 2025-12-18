@@ -24,6 +24,7 @@ import { Landing3DTeaser } from './components/Landing3DTeaser';
 import { OnboardingBackground } from './components/OnboardingBackground';
 import { AuthVerificationModal } from './components/AuthVerificationModal';
 import { ContactPage } from "./components/ContactPage";
+import { AboutPage } from "./components/AboutPage";
 
 import { 
   ArrowRight,
@@ -1088,7 +1089,9 @@ useEffect(() => {
       {state.step === AppStep.CONTACT && (
   <ContactPage onBack={() => setState(prev => ({ ...prev, step: AppStep.LANDING }))} />
        )}
-
+{state.step === AppStep.ABOUT && (
+  <AboutPage onBack={() => setState(prev => ({ ...prev, step: AppStep.LANDING }))} />
+)}
       {/* --- Main App Header (For authenticated steps) --- */}
       {state.step !== AppStep.LANDING && state.step !== AppStep.PAYWALL && state.step !== AppStep.ONBOARDING && (
         <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
