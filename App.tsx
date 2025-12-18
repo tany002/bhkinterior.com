@@ -267,6 +267,33 @@ useEffect(() => {
 
   return () => window.removeEventListener("open-contact", handler);
 }, []);
+  
+  // 📖 Handle "About Us" button click from footer + URL sync
+useEffect(() => {
+  const handler = () => {
+    setState(prev => ({ ...prev, step: AppStep.ABOUT }));
+    window.history.pushState({}, "", "/about");
+  };
+
+  window.addEventListener("open-about", handler);
+
+  // ✅ Handle direct /about visits
+  if (window.location.pathname === "/about") {
+    setState(prev => ({ ...prev, step: AppStep.ABOUT }));
+  }
+
+  // Handle browser back button
+  window.addEventListener("popstate", () => {
+    if (window.location.pathname === "/about") {
+      setState(prev => ({ ...prev, step: AppStep.ABOUT }));
+    } else {
+      setState(prev => ({ ...prev, step: AppStep.LANDING }));
+    }
+  });
+
+  return () => window.removeEventListener("open-about", handler);
+}, []);
+
 
 
 
