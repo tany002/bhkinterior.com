@@ -241,15 +241,32 @@ function App() {
   }
 }, []);
   
-// 📨 Handle "Contact" button click from footer
+// 📨 Handle "Contact" button click from footer + URL sync
 useEffect(() => {
   const handler = () => {
     setState(prev => ({ ...prev, step: AppStep.CONTACT }));
+    window.history.pushState({}, "", "/contact"); // 👈 update URL to /contact
   };
 
   window.addEventListener("open-contact", handler);
+
+  // ✅ Handle direct /contact visits
+  if (window.location.pathname === "/contact") {
+    setState(prev => ({ ...prev, step: AppStep.CONTACT }));
+  }
+
+  // Handle browser back button
+  window.addEventListener("popstate", () => {
+    if (window.location.pathname === "/contact") {
+      setState(prev => ({ ...prev, step: AppStep.CONTACT }));
+    } else {
+      setState(prev => ({ ...prev, step: AppStep.LANDING }));
+    }
+  });
+
   return () => window.removeEventListener("open-contact", handler);
-}, []);  
+}, []);
+
 
 
   // --- Handlers ---
