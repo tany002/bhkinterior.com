@@ -55,11 +55,11 @@ We don't just look at pixels; we understand the *space*.
 ## 5. Monetization Strategy
 Our tiered subscription model captures different market segments:
 
-1.  **Pro ($39/mo)**: For the DIY enthusiast.
+1.  **Pro (Rs 599/mo)**: For the DIY enthusiast.
     -   Focus: Unlimited standard renders.
-2.  **Premium ($149/mo)**: For serious renovators.
+2.  **Premium ($799/mo)**: For serious renovators.
     -   Focus: 8K quality, 3D Mode, and Layout Editing.
-3.  **Ultra ($169/mo)**: For real estate agents and contractors.
+3.  **Ultra (Rs999/mo)**: For real estate agents and contractors.
     -   Focus: High volume, commercial rights, white-glove support.
 
 ---
