@@ -17,7 +17,7 @@ export const AboutPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           </p>
 
           <p>
-            Founded by <strong>Vaibhav Prakash</strong>, BHK Interior redefines how homeowners plan, 
+            Founded by <strong>Tanya Sahay</strong>, BHK Interior redefines how homeowners plan, 
             visualize, and personalize their dream homes using advanced design intelligence. 
             Every render and 3D walkthrough is crafted with precision, warmth, and beauty.
           </p>
