@@ -276,7 +276,44 @@ useEffect(() => {
     }
   }
 }, []);
-  
+// 🧩 Check with backend if user has paid (server-side verification)
+useEffect(() => {
+  const email = localStorage.getItem("user_email");
+  if (!email) return; // only check if we have an email
+
+  (async () => {
+    try {
+      const res = await fetch(`/api/checkUserPayment?email=${encodeURIComponent(email)}`);
+      const data = await res.json();
+
+      if (data.success && data.status === "PAID") {
+        console.log("✅ Verified paid user from backend:", data.email);
+
+        const userProfile = {
+          email: data.email,
+          plan: data.plan,
+          billingCycle: data.billingCycle,
+          expiry: data.expiry,
+          isSubscribed: true,
+        };
+
+        // Save locally for faster reload next time
+        localStorage.setItem("bhk_user_profile", JSON.stringify(userProfile));
+
+        // Update app state to skip paywall
+        setState(prev => ({
+          ...prev,
+          step: AppStep.ONBOARDING,
+          userProfile: { ...prev.userProfile, ...userProfile },
+        }));
+      } else {
+        console.log("🟡 Not found in paid records:", email);
+      }
+    } catch (err) {
+      console.error("⚠️ Failed to check payment status:", err);
+    }
+  })();
+}, []);  
   
   
 // 📨 Handle "Contact" button click from footer + URL sync
