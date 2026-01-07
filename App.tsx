@@ -1,5 +1,6 @@
 
 // App.tsx
+import { getUser, createUser, markUserAsPaid, isPaidUser } from './utils/userSession';
 import React, { useState, useRef, useEffect } from 'react';
 import { AppState, AppStep, RoomData, RoomType, DESIGN_STYLES, ROOM_QUESTIONS, LayoutProposal, DesignRegion, OnboardingData, SubscriptionTier, BillingCycle } from './types';
 import { analyzeFloorPlan, generateRoomDesign, analyzeImageCoverage, analyzeHouseVideo, analyzeRoomScale, analyzeRoomSemantics, compute3DReconstruction, generateLayoutProposals, validateLayouts, generate3DScene, generateRenderedViews, validateAndRefineRenders } from './services/geminiService';
@@ -25,6 +26,7 @@ import { OnboardingBackground } from './components/OnboardingBackground';
 import { AuthVerificationModal } from './components/AuthVerificationModal';
 import { ContactPage } from "./components/ContactPage";
 import { AboutPage } from "./components/AboutPage";
+
 
 import { 
   ArrowRight,
@@ -197,6 +199,26 @@ function App() {
       }
   };
 
+  useEffect(() => {
+    const existingUser = getUser();
+  
+    if (existingUser?.isPaid) {
+      setState(prev => ({
+        ...prev,
+        step: AppStep.ONBOARDING,
+        userProfile: {
+          ...prev.userProfile,
+          isSubscribed: true,
+          tier: existingUser.plan || 'free',
+          email: existingUser.email,
+          phone: existingUser.phone,
+        }
+      }));
+    }
+  }, []);
+  
+  
+
   // Domain Branding & Payment Callback Handling
  useEffect(() => {
   document.title = "BHKInterior.com | AI Home Design Studio";
@@ -217,25 +239,26 @@ function App() {
         const result = await verifyRes.json();
 
         if (result.success && result.status === "PAID") {
-  const userProfile = {
-    email: result.email,
-    plan: result.plan,
-    billingCycle: result.billingCycle,
-    verifiedAt: result.verifiedAt,
-    expiry: result.expiry,
-    isSubscribed: true,
-  };
 
-  // Store locally
-  localStorage.setItem("bhk_user_profile", JSON.stringify(userProfile));
-
-  // Update app state
-  setState(prev => ({
-    ...prev,
-    step: AppStep.ONBOARDING,
-    userProfile: { ...prev.userProfile, ...userProfile },
-  }));
-} else {
+          // ✅ THIS IS THE MISSING LINE (CRITICAL)
+          markUserAsPaid(result.plan, result.billingCycle);
+        
+          const userProfile = {
+            email: result.email,
+            plan: result.plan,
+            billingCycle: result.billingCycle,
+            verifiedAt: result.verifiedAt,
+            expiry: result.expiry,
+            isSubscribed: true,
+          };
+        
+          setState(prev => ({
+            ...prev,
+            step: AppStep.ONBOARDING,
+            userProfile: { ...prev.userProfile, ...userProfile },
+          }));
+        }
+         else {
   setState(prev => ({ ...prev, step: AppStep.LANDING }));
 }
 
@@ -253,67 +276,6 @@ function App() {
   }
 }, []);
 
-// 🧩 Auto-restore user session if previously paid
-useEffect(() => {
-  const savedProfile = localStorage.getItem("bhk_user_profile");
-  if (savedProfile) {
-    try {
-      const user = JSON.parse(savedProfile);
-      const now = Date.now();
-      if (user.isSubscribed && user.expiry && now < user.expiry) {
-        console.log("✅ Restored active user:", user.email);
-        setState(prev => ({
-          ...prev,
-          step: AppStep.ONBOARDING,
-          userProfile: { ...prev.userProfile, ...user },
-        }));
-      } else {
-        console.warn("⚠️ Subscription expired or invalid:", user.email);
-        localStorage.removeItem("bhk_user_profile");
-      }
-    } catch (e) {
-      console.error("💥 Failed to restore local profile:", e);
-    }
-  }
-}, []);
-// 🧩 Check with backend if user has paid (server-side verification)
-useEffect(() => {
-  const email = localStorage.getItem("user_email");
-  if (!email) return; // only check if we have an email
-
-  (async () => {
-    try {
-      const res = await fetch(`/api/checkUserPayment?email=${encodeURIComponent(email)}`);
-      const data = await res.json();
-
-      if (data.success && data.status === "PAID") {
-        console.log("✅ Verified paid user from backend:", data.email);
-
-        const userProfile = {
-          email: data.email,
-          plan: data.plan,
-          billingCycle: data.billingCycle,
-          expiry: data.expiry,
-          isSubscribed: true,
-        };
-
-        // Save locally for faster reload next time
-        localStorage.setItem("bhk_user_profile", JSON.stringify(userProfile));
-
-        // Update app state to skip paywall
-        setState(prev => ({
-          ...prev,
-          step: AppStep.ONBOARDING,
-          userProfile: { ...prev.userProfile, ...userProfile },
-        }));
-      } else {
-        console.log("🟡 Not found in paid records:", email);
-      }
-    } catch (err) {
-      console.error("⚠️ Failed to check payment status:", err);
-    }
-  })();
-}, []);  
   
   
 // 📨 Handle "Contact" button click from footer + URL sync
@@ -373,17 +335,29 @@ useEffect(() => {
 
   // --- Handlers ---
   const handleStartFlow = (registrationData?: { name: string; email: string; phone: string }) => {
-    if (registrationData) {
-        setState(prev => ({
-            ...prev,
-            userProfile: {
-                ...prev.userProfile,
-                name: registrationData.name,
-                email: registrationData.email,
-                phone: registrationData.phone
-            }
-        }));
+    const existingUser = getUser();
+
+    if (!existingUser && (registrationData?.email || registrationData?.phone)) {
+      createUser(registrationData.email, registrationData.phone);
     }
+  
+    const user = getUser();
+  
+    setState(prev => ({
+      ...prev,
+      userProfile: {
+        ...prev.userProfile,
+        email: user?.email,
+        phone: user?.phone,
+        isSubscribed: user?.isPaid ?? false,
+        tier: user?.plan ?? 'free'
+      },
+      step: user?.isPaid ? AppStep.ONBOARDING : AppStep.PAYWALL
+    }));
+  
+    setOnboardingStep(1);
+  };
+  
 
     if (state.userProfile.isSubscribed) {
       setState(prev => ({ ...prev, step: AppStep.ONBOARDING }));
