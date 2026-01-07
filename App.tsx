@@ -357,15 +357,6 @@ useEffect(() => {
   
     setOnboardingStep(1);
   };
-  
-
-    if (state.userProfile.isSubscribed) {
-      setState(prev => ({ ...prev, step: AppStep.ONBOARDING }));
-      setOnboardingStep(1); 
-    } else {
-      setState(prev => ({ ...prev, step: AppStep.PAYWALL }));
-    }
-  };
 
   const handlePlanSelect = (tier: SubscriptionTier) => {
       setSelectedPlanTier(tier);
